@@ -12,6 +12,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -31,13 +33,15 @@ public class UserService {
         }
 
 //        User newUser = userMapper.toUser(request);
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         User newUser = User.builder()
                 .username(request.getUsername())
-                .password(request.getPassword())
+//                .password(request.getPassword())
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .dob(request.getDob())
                 .build();
+        newUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
 
 
         return userMapper.toUserResponse(userRepository.save(newUser));
@@ -49,11 +53,11 @@ public class UserService {
     }
 
     public UserResponse getUser(String id) {
-        return userMapper.toUserResponse(userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found")));
+        return userMapper.toUserResponse(userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND)));
     }
 
     public UserResponse updateUser(String id, UserUpdateRequest request) {
-        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         userMapper.updateUser(user, request);
 
