@@ -1,15 +1,20 @@
 package com.example.course_springboot.controller;
 
 import com.example.course_springboot.dto.request.AuthenticationRequest;
+import com.example.course_springboot.dto.request.IntrospectRequest;
 import com.example.course_springboot.dto.response.ApiResponse;
 import com.example.course_springboot.dto.response.AuthenticationResponse;
+import com.example.course_springboot.dto.response.IntrospectResponse;
 import com.example.course_springboot.service.AuthenticationService;
+import com.nimbusds.jose.JOSEException;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.text.ParseException;
 
 @RestController
 @RequestMapping("/auth")
@@ -20,11 +25,19 @@ public class AuthenticationController {
 
     @PostMapping("/login")
     ApiResponse<AuthenticationResponse> login(@RequestBody AuthenticationRequest request) {
-        boolean authenticated = authenticationService.authenticate(request);
+        var result = authenticationService.authenticate(request);
         return ApiResponse.<AuthenticationResponse>builder()
                 .code(200)
                 .message("Authenticated")
-                .result(AuthenticationResponse.builder().authenticated(authenticated).build())
+                .result(result)
+                .build();
+    }
+
+    @PostMapping("/introspect")
+    ApiResponse<IntrospectResponse> authenticate(@RequestBody IntrospectRequest request) throws ParseException, JOSEException {
+        var result = authenticationService.introspect(request);
+        return ApiResponse.<IntrospectResponse>builder()
+                .result(result)
                 .build();
     }
 }
