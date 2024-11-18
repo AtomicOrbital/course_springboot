@@ -4,6 +4,7 @@ import com.example.course_springboot.dto.request.UserCreationRequest;
 import com.example.course_springboot.dto.request.UserUpdateRequest;
 import com.example.course_springboot.dto.response.UserResponse;
 import com.example.course_springboot.entity.User;
+import com.example.course_springboot.enums.Role;
 import com.example.course_springboot.exception.AppException;
 import com.example.course_springboot.exception.ErrorCode;
 import com.example.course_springboot.mapper.UserMapper;
@@ -12,10 +13,14 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
 
 
@@ -23,8 +28,9 @@ import java.util.List;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserService {
-   UserRepository userRepository;
-   UserMapper userMapper;
+    UserRepository userRepository;
+    UserMapper userMapper;
+    PasswordEncoder passwordEncoder;
 
     public UserResponse createReqest(UserCreationRequest request) {
 
@@ -32,26 +38,41 @@ public class UserService {
             throw new AppException(ErrorCode.USER_EXISTS);
         }
 
-//        User newUser = userMapper.toUser(request);
-        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-        User newUser = User.builder()
-                .username(request.getUsername())
-//                .password(request.getPassword())
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .dob(request.getDob())
-                .build();
+        User newUser = userMapper.toUser(request);
+//        User newUser = User.builder()
+//                .username(request.getUsername())
+//                .password(passwordEncoder.encode(request.getPassword()))
+//                .firstName(request.getFirstName())
+//                .lastName(request.getLastName())
+//                .dob(request.getDob())
+//                .build();
         newUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
 
+        HashSet<String> roles = new HashSet<>();
+        roles.add(Role.USER.name());
+
+//        newUser.setRoles(roles);
 
         return userMapper.toUserResponse(userRepository.save(newUser));
     }
+
+    public UserResponse getMyInfo() {
+        var context = SecurityContextHolder.getContext();
+        String name = context.getAuthentication().getName();
+
+        User user = userRepository.findByUsername(name).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
+
+        return userMapper.toUserResponse(user);
+
+    }
+
 
     public List<UserResponse> getUsers() {
         return userRepository.findAll().stream()
                 .map(userMapper::toUserResponse).toList();
     }
 
+    @PostAuthorize("returnObject.username == authentication.name")
     public UserResponse getUser(String id) {
         return userMapper.toUserResponse(userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND)));
     }
