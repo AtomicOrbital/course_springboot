@@ -30,9 +30,7 @@ import org.springframework.util.CollectionUtils;
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Collections;
-import java.util.Date;
-import java.util.StringJoiner;
+import java.util.*;
 
 
 @Service
@@ -93,7 +91,7 @@ public class AuthenticationService {
                 .expirationTime(new Date(
                         Instant.now().plus(1, ChronoUnit.HOURS).toEpochMilli()
                 ))
-                .claim("scope ", buildScope(user))
+                .claim("scope", buildScope(user))
                 .build();
 
         Payload payload = new Payload(jwtClaimsSet.toJSONObject());
@@ -110,7 +108,16 @@ public class AuthenticationService {
 
     private String buildScope(User user) {
         if (!CollectionUtils.isEmpty(user.getRoles())) {
-//            return String.join(" ", user.getRoles());
+            List<String> permissions = new ArrayList<>();
+            user.getRoles().forEach(role -> {
+                permissions.add("ROLE_" + role.getName());
+                if(!CollectionUtils.isEmpty(role.getPermissions())){
+                    role.getPermissions().forEach(permission -> {
+                        permissions.add(permission.getName());
+                    });
+                }
+            });
+            return String.join(" ", permissions);
         }
         return "";
     }

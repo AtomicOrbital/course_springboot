@@ -5,6 +5,7 @@ import com.example.course_springboot.dto.request.UserUpdateRequest;
 import com.example.course_springboot.dto.response.ApiResponse;
 import com.example.course_springboot.dto.response.UserResponse;
 import com.example.course_springboot.entity.User;
+import com.example.course_springboot.exception.ErrorCode;
 import com.example.course_springboot.service.UserService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -26,11 +27,12 @@ public class UserController {
     @PostMapping
     ApiResponse<UserResponse> createUser(@RequestBody @Valid UserCreationRequest request) {
         return ApiResponse.<UserResponse>builder()
+                .code(ErrorCode.SUCCESS.getCode())
                 .result(userService.createReqest(request))
                 .build();
     }
 
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') and hasAuthority('APRROVE_DATA')")
     @GetMapping
     ApiResponse<List<UserResponse>> getUsers() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();

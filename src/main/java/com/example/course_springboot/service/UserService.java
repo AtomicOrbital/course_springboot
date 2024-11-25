@@ -8,15 +8,14 @@ import com.example.course_springboot.enums.Role;
 import com.example.course_springboot.exception.AppException;
 import com.example.course_springboot.exception.ErrorCode;
 import com.example.course_springboot.mapper.UserMapper;
+import com.example.course_springboot.repository.RoleRepository;
 import com.example.course_springboot.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +30,7 @@ public class UserService {
     UserRepository userRepository;
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
+    RoleRepository roleRepository;
 
     public UserResponse createReqest(UserCreationRequest request) {
 
@@ -46,12 +46,14 @@ public class UserService {
 //                .lastName(request.getLastName())
 //                .dob(request.getDob())
 //                .build();
-        newUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
+        newUser.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        HashSet<String> roles = new HashSet<>();
-        roles.add(Role.USER.name());
+        var userRole = roleRepository.findByName(Role.ADMIN.name())
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
 
-//        newUser.setRoles(roles);
+        HashSet<com.example.course_springboot.entity.Role> roles = new HashSet<>();
+        roles.add(userRole);
+        newUser.setRoles(roles);
 
         return userMapper.toUserResponse(userRepository.save(newUser));
     }
@@ -65,7 +67,6 @@ public class UserService {
         return userMapper.toUserResponse(user);
 
     }
-
 
     public List<UserResponse> getUsers() {
         return userRepository.findAll().stream()
@@ -81,7 +82,10 @@ public class UserService {
         User user = userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         userMapper.updateUser(user, request);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
 
+        var roles = roleRepository.findAllById(request.getRoles());
+        user.setRoles(new HashSet<>(roles));
         return userMapper.toUserResponse(userRepository.save(user));
     }
 

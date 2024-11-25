@@ -26,8 +26,12 @@ import javax.crypto.spec.SecretKeySpec;
 public class SecurityConfig {
 
     private final String[] PUBLIC_ENPOINTS = {
-            "/users", "/auth/login", "/auth/introspect","/swagger-ui/**","/v3/api-docs/**"
+            "/users", "/auth/login", "/auth/introspect"
     };
+    private final String[] PUBLIC_ENPOINTS_SWAGGER = {
+            "/swagger-ui/**", "/v3/api-docs/**"
+    };
+
 
     @Value("${jwt.signerKey}")
     private String signerKey;
@@ -38,15 +42,13 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(request ->
                         request.requestMatchers(HttpMethod.POST, PUBLIC_ENPOINTS).permitAll()
-                                .requestMatchers(HttpMethod.GET, PUBLIC_ENPOINTS).permitAll()
-                                .requestMatchers(HttpMethod.GET, PUBLIC_ENPOINTS).permitAll()
-
-
+                                .requestMatchers(HttpMethod.GET, PUBLIC_ENPOINTS_SWAGGER).permitAll()
+                                .requestMatchers(HttpMethod.GET, PUBLIC_ENPOINTS_SWAGGER).permitAll()
                                 .anyRequest().authenticated());
 
         httpSecurity.oauth2ResourceServer(oauth2 ->
                 oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder())
-                        .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                                .jwtAuthenticationConverter(jwtAuthenticationConverter()))
                         .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
         );
 
@@ -54,9 +56,9 @@ public class SecurityConfig {
         return httpSecurity.build();
     }
 
-    JwtAuthenticationConverter jwtAuthenticationConverter(){
+    JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        jwtGrantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
+        jwtGrantedAuthoritiesConverter.setAuthorityPrefix("");
 //        jwtGrantedAuthoritiesConverter.setAuthoritiesClaimName("roles");
 
         JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
@@ -66,7 +68,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    JwtDecoder jwtDecoder(){
+    JwtDecoder jwtDecoder() {
         SecretKeySpec secretKeySpec = new SecretKeySpec(signerKey.getBytes(), "HS512");
         return NimbusJwtDecoder
                 .withSecretKey(secretKeySpec)
@@ -75,7 +77,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    PasswordEncoder passwordEncoder(){
+    PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
