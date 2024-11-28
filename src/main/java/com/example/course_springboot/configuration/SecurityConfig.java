@@ -1,6 +1,9 @@
 package com.example.course_springboot.configuration;
 
 import com.nimbusds.jose.JWSAlgorithm;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +19,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 import javax.crypto.spec.SecretKeySpec;
@@ -26,19 +30,23 @@ import javax.crypto.spec.SecretKeySpec;
 public class SecurityConfig {
 
     private final String[] PUBLIC_ENPOINTS = {
-            "/users", "/auth/login", "/auth/introspect"
+            "/users", "/auth/login", "/auth/introspect", "/auth/logout"
     };
     private final String[] PUBLIC_ENPOINTS_SWAGGER = {
             "/swagger-ui/**", "/v3/api-docs/**"
     };
 
-
     @Value("${jwt.signerKey}")
     private String signerKey;
+
+//    CustomJwtDecoder customJwtDecoder;
+    @Autowired
+    JwtIntrospectFilter jwtIntrospectFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
+                .addFilterBefore(jwtIntrospectFilter, BearerTokenAuthenticationFilter.class)
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(request ->
                         request.requestMatchers(HttpMethod.POST, PUBLIC_ENPOINTS).permitAll()
