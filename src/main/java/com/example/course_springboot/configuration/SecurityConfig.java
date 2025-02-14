@@ -1,8 +1,7 @@
 package com.example.course_springboot.configuration;
 
-import com.nimbusds.jose.JWSAlgorithm;
-import lombok.*;
-import lombok.experimental.FieldDefaults;
+import javax.crypto.spec.SecretKeySpec;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -22,24 +21,20 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
-import javax.crypto.spec.SecretKeySpec;
-
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     private final String[] PUBLIC_ENPOINTS = {
-            "/users", "/auth/login", "/auth/introspect", "/auth/logout"
+        "/users", "/auth/login", "/auth/introspect", "/auth/logout", "/auth/refresh"
     };
-    private final String[] PUBLIC_ENPOINTS_SWAGGER = {
-            "/swagger-ui/**", "/v3/api-docs/**"
-    };
+    private final String[] PUBLIC_ENPOINTS_SWAGGER = {"/swagger-ui/**", "/v3/api-docs/**"};
 
     @Value("${jwt.signerKey}")
     private String signerKey;
 
-//    CustomJwtDecoder customJwtDecoder;
+    //    CustomJwtDecoder customJwtDecoder;
     @Autowired
     JwtIntrospectFilter jwtIntrospectFilter;
 
@@ -48,18 +43,18 @@ public class SecurityConfig {
         httpSecurity
                 .addFilterBefore(jwtIntrospectFilter, BearerTokenAuthenticationFilter.class)
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(request ->
-                        request.requestMatchers(HttpMethod.POST, PUBLIC_ENPOINTS).permitAll()
-                                .requestMatchers(HttpMethod.GET, PUBLIC_ENPOINTS_SWAGGER).permitAll()
-                                .requestMatchers(HttpMethod.GET, PUBLIC_ENPOINTS_SWAGGER).permitAll()
-                                .anyRequest().authenticated());
+                .authorizeHttpRequests(request -> request.requestMatchers(HttpMethod.POST, PUBLIC_ENPOINTS)
+                        .permitAll()
+                        .requestMatchers(HttpMethod.GET, PUBLIC_ENPOINTS_SWAGGER)
+                        .permitAll()
+                        //                        .requestMatchers(HttpMethod.GET, PUBLIC_ENPOINTS).permitAll()
+                        //                        .requestMatchers(HttpMethod.POST, PUBLIC_ENPOINTS).permitAll()
+                        .anyRequest()
+                        .authenticated());
 
-        httpSecurity.oauth2ResourceServer(oauth2 ->
-                oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder())
-                                .jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                        .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
-        );
-
+        httpSecurity.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer ->
+                        jwtConfigurer.decoder(jwtDecoder()).jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                .authenticationEntryPoint(new JwtAuthenticationEntryPoint()));
 
         return httpSecurity.build();
     }
@@ -67,7 +62,7 @@ public class SecurityConfig {
     JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
         jwtGrantedAuthoritiesConverter.setAuthorityPrefix("");
-//        jwtGrantedAuthoritiesConverter.setAuthoritiesClaimName("roles");
+        //        jwtGrantedAuthoritiesConverter.setAuthoritiesClaimName("roles");
 
         JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
         jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
@@ -78,8 +73,7 @@ public class SecurityConfig {
     @Bean
     JwtDecoder jwtDecoder() {
         SecretKeySpec secretKeySpec = new SecretKeySpec(signerKey.getBytes(), "HS512");
-        return NimbusJwtDecoder
-                .withSecretKey(secretKeySpec)
+        return NimbusJwtDecoder.withSecretKey(secretKeySpec)
                 .macAlgorithm(MacAlgorithm.HS512)
                 .build();
     }
@@ -88,5 +82,4 @@ public class SecurityConfig {
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-
 }

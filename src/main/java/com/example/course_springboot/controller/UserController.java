@@ -1,21 +1,21 @@
 package com.example.course_springboot.controller;
 
+import java.util.List;
+
+import jakarta.validation.Valid;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
 import com.example.course_springboot.dto.request.UserCreationRequest;
 import com.example.course_springboot.dto.request.UserUpdateRequest;
 import com.example.course_springboot.dto.response.ApiResponse;
 import com.example.course_springboot.dto.response.UserResponse;
-import com.example.course_springboot.entity.User;
 import com.example.course_springboot.exception.ErrorCode;
 import com.example.course_springboot.service.UserService;
-import jakarta.validation.Valid;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PostAuthorize;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestController
@@ -32,7 +32,7 @@ public class UserController {
                 .build();
     }
 
-    @PreAuthorize("hasAuthority('ROLE_ADMIN') and hasAuthority('APRROVE_DATA')")
+    //    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @GetMapping
     ApiResponse<List<UserResponse>> getUsers() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -52,7 +52,6 @@ public class UserController {
                 .build();
     }
 
-
     @GetMapping("/{userId}")
     ApiResponse<UserResponse> getUser(@PathVariable String userId) {
         return ApiResponse.<UserResponse>builder()
@@ -61,7 +60,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}")
-    ApiResponse<UserResponse> updateUser(@PathVariable String userId, @RequestBody UserUpdateRequest request){
+    ApiResponse<UserResponse> updateUser(@PathVariable String userId, @RequestBody UserUpdateRequest request) {
         return ApiResponse.<UserResponse>builder()
                 .result(userService.updateUser(userId, request))
                 .build();
@@ -71,9 +70,6 @@ public class UserController {
     ApiResponse<String> deleteUser(@PathVariable String userId) {
 
         userService.deleteUser(userId);
-        return ApiResponse.<String>builder()
-                .result("User has been deleted")
-                .build();
-
+        return ApiResponse.<String>builder().result("User has been deleted").build();
     }
 }

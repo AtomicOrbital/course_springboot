@@ -1,5 +1,17 @@
 package com.example.course_springboot.service;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import jakarta.transaction.Transactional;
+
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import com.example.course_springboot.dto.request.UserCreationRequest;
 import com.example.course_springboot.dto.request.UserUpdateRequest;
 import com.example.course_springboot.dto.response.UserResponse;
@@ -10,18 +22,10 @@ import com.example.course_springboot.exception.ErrorCode;
 import com.example.course_springboot.mapper.UserMapper;
 import com.example.course_springboot.repository.RoleRepository;
 import com.example.course_springboot.repository.UserRepository;
+
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.security.access.prepost.PostAuthorize;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
-import java.util.HashSet;
-import java.util.List;
-
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +36,7 @@ public class UserService {
     PasswordEncoder passwordEncoder;
     RoleRepository roleRepository;
 
+    @Transactional
     public UserResponse createReqest(UserCreationRequest request) {
 
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -39,23 +44,22 @@ public class UserService {
         }
 
         User newUser = userMapper.toUser(request);
-//        User newUser = User.builder()
-//                .username(request.getUsername())
-//                .password(passwordEncoder.encode(request.getPassword()))
-//                .firstName(request.getFirstName())
-//                .lastName(request.getLastName())
-//                .dob(request.getDob())
-//                .build();
         newUser.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        var userRole = roleRepository.findByName(Role.ADMIN.name())
+        var userRole = roleRepository
+                .findByName(Role.USER.name())
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
 
-        HashSet<com.example.course_springboot.entity.Role> roles = new HashSet<>();
-        roles.add(userRole);
-        newUser.setRoles(roles);
+        newUser.setRoles(new HashSet<>(Set.of(userRole)));
+        //        HashSet<com.example.course_springboot.entity.Role> roles = new HashSet<>();
+        //        roles.add(userRole);
+        //        newUser.setRoles(roles);
 
-        return userMapper.toUserResponse(userRepository.save(newUser));
+        try {
+            return userMapper.toUserResponse(userRepository.save(newUser));
+        } catch (DataIntegrityViolationException e) {
+            throw new AppException(ErrorCode.USER_EXISTS);
+        }
     }
 
     public UserResponse getMyInfo() {
@@ -65,17 +69,16 @@ public class UserService {
         User user = userRepository.findByUsername(name).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTS));
 
         return userMapper.toUserResponse(user);
-
     }
 
     public List<UserResponse> getUsers() {
-        return userRepository.findAll().stream()
-                .map(userMapper::toUserResponse).toList();
+        return userRepository.findAll().stream().map(userMapper::toUserResponse).toList();
     }
 
     @PostAuthorize("returnObject.username == authentication.name")
     public UserResponse getUser(String id) {
-        return userMapper.toUserResponse(userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND)));
+        return userMapper.toUserResponse(
+                userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND)));
     }
 
     public UserResponse updateUser(String id, UserUpdateRequest request) {

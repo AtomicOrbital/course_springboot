@@ -1,11 +1,13 @@
 package com.example.course_springboot.exception;
 
-import com.example.course_springboot.dto.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+
+import com.example.course_springboot.dto.response.ApiResponse;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -13,13 +15,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = RuntimeException.class)
     ResponseEntity<ApiResponse> handleRuntimeException(RuntimeException e) {
         ApiResponse apiResponse = new ApiResponse();
-        apiResponse.setCode(400);
-        apiResponse.setMessage(e.getMessage());
-
+        apiResponse.setCode(ErrorCode.UNAUTHENTICATED.getCode());
+        apiResponse.setMessage(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage());
 
         return ResponseEntity.badRequest().body(apiResponse);
     }
-
 
     @ExceptionHandler(value = AppException.class)
     ResponseEntity<ApiResponse> handleAppException(AppException e) {
@@ -29,39 +29,41 @@ public class GlobalExceptionHandler {
         apiResponse.setCode(errorCode.getCode());
         apiResponse.setMessage(errorCode.getMessage());
 
-        return ResponseEntity
-                .status(errorCode.getStatusCode())
-                .body(apiResponse);
+        return ResponseEntity.status(errorCode.getStatusCode()).body(apiResponse);
     }
 
     @ExceptionHandler(value = AccessDeniedException.class)
-    ResponseEntity<ApiResponse> handleAccessDeniedException(AccessDeniedException exception){
+    ResponseEntity<ApiResponse> handleAccessDeniedException(AccessDeniedException exception) {
         ErrorCode errorCode = ErrorCode.UNAUTHORIZED;
 
-        return ResponseEntity.status(errorCode.getStatusCode()).body(
-                ApiResponse.builder()
+        return ResponseEntity.status(errorCode.getStatusCode())
+                .body(ApiResponse.builder()
                         .code(errorCode.getCode())
                         .message(exception.getMessage())
-                        .build()
-        );
+                        .build());
     }
-
-
 
     @ExceptionHandler(value = MethodArgumentNotValidException.class)
     ResponseEntity<ApiResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException exception) {
         ErrorCode errorCode = ErrorCode.INVALID_KEY;
         ApiResponse apiResponse = new ApiResponse();
 
-        try {
-            errorCode = ErrorCode.valueOf(exception.getBindingResult().getFieldError().getDefaultMessage());
+        FieldError fieldError = exception.getBindingResult().getFieldError();
+
+        // check if the field error is null
+        if (fieldError != null) {
+            try {
+                errorCode = ErrorCode.valueOf(fieldError.getDefaultMessage());
+                apiResponse.setCode(errorCode.getCode());
+                apiResponse.setMessage(errorCode.getMessage());
+            } catch (IllegalArgumentException e) {
+                apiResponse.setCode(errorCode.getCode());
+                apiResponse.setMessage(errorCode.getMessage());
+            }
+        } else {
             apiResponse.setCode(errorCode.getCode());
             apiResponse.setMessage(errorCode.getMessage());
-            return ResponseEntity.badRequest().body(apiResponse);
-        } catch (IllegalArgumentException e) {
-            apiResponse.setCode(errorCode.getCode());
-            apiResponse.setMessage(errorCode.getMessage());
-            return ResponseEntity.badRequest().body(apiResponse);
         }
+        return ResponseEntity.badRequest().body(apiResponse);
     }
 }

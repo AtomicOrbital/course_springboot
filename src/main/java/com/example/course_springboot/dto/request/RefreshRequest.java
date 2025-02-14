@@ -1,4 +1,4 @@
-package com.example.course_springboot.dto.response;
+package com.example.course_springboot.dto.request;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -8,7 +8,6 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class PermissionResponse {
-    String name;
-    private String description;
+public class RefreshRequest {
+    String token;
 }

@@ -1,6 +1,5 @@
 package com.example.course_springboot.dto.response;
 
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -1,6 +1,7 @@
 package com.example.course_springboot.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,5 +18,4 @@ public class ApiResponse<T> {
     int code = 1000;
     String message;
     T result;
-
 }

@@ -1,11 +1,11 @@
 package com.example.course_springboot.repository;
 
+import java.util.Optional;
 
-import com.example.course_springboot.entity.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
+import com.example.course_springboot.entity.Role;
 
 @Repository
 public interface RoleRepository extends JpaRepository<Role, String> {

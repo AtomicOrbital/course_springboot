@@ -1,6 +1,5 @@
 package com.example.course_springboot.dto.request;
 
-
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -11,6 +10,5 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PermissionRequest {
     String name;
-    private String description;;
-
+    private String description;
 }
